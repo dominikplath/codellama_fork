@@ -66,11 +66,11 @@ UNSAFE_ERROR = "Error: special tags are not allowed as part of the prompt."
 class Llama:
     @staticmethod
     def build(
-        ckpt_dir: str,
-        tokenizer_path: str,
-        max_seq_len: int,
-        max_batch_size: int,
-        model_parallel_size: Optional[int] = None,
+            ckpt_dir: str,
+            tokenizer_path: str,
+            max_seq_len: int,
+            max_batch_size: int,
+            model_parallel_size: Optional[int] = None,
     ) -> "Llama":
         if not torch.distributed.is_initialized():
             if device == "cuda":
@@ -131,14 +131,14 @@ class Llama:
 
     @torch.inference_mode()
     def generate(
-        self,
-        prompt_tokens: List[List[int]],
-        max_gen_len: int,
-        temperature: float = 0.6,
-        top_p: float = 0.9,
-        logprobs: bool = False,
-        echo: bool = False,
-        stop_token: Optional[int] = None,
+            self,
+            prompt_tokens: List[List[int]],
+            max_gen_len: int,
+            temperature: float = 0.6,
+            top_p: float = 0.9,
+            logprobs: bool = False,
+            echo: bool = False,
+            stop_token: Optional[int] = None,
     ) -> Tuple[List[List[int]], Optional[List[List[float]]]]:
         if stop_token is None:
             stop_token = self.tokenizer.eos_id
@@ -164,9 +164,9 @@ class Llama:
         for cur_pos in range(min_prompt_len, total_len):
             logits = self.model.forward(tokens[:, prev_pos:cur_pos], prev_pos)
             if logprobs:
-                token_logprobs[:, prev_pos + 1 : cur_pos + 1] = -F.cross_entropy(
+                token_logprobs[:, prev_pos + 1: cur_pos + 1] = -F.cross_entropy(
                     input=logits.transpose(1, 2),
-                    target=tokens[:, prev_pos + 1 : cur_pos + 1],
+                    target=tokens[:, prev_pos + 1: cur_pos + 1],
                     reduction="none",
                     ignore_index=pad_id,
                 )
@@ -193,10 +193,10 @@ class Llama:
         for i, toks in enumerate(tokens.tolist()):
             # cut to max gen len
             start = 0 if echo else len(prompt_tokens[i])
-            toks = toks[start : len(prompt_tokens[i]) + max_gen_len]
+            toks = toks[start: len(prompt_tokens[i]) + max_gen_len]
             probs = None
             if logprobs:
-                probs = token_logprobs[i][start : len(prompt_tokens[i]) + max_gen_len]
+                probs = token_logprobs[i][start: len(prompt_tokens[i]) + max_gen_len]
             # cut to stop token if present
             if stop_token in toks:
                 stop_idx = toks.index(stop_token)
@@ -207,13 +207,13 @@ class Llama:
         return (out_tokens, out_logprobs if logprobs else None)
 
     def text_completion(
-        self,
-        prompts: List[str],
-        temperature: float = 0.6,
-        top_p: float = 0.9,
-        max_gen_len: Optional[int] = None,
-        logprobs: bool = False,
-        echo: bool = False,
+            self,
+            prompts: List[str],
+            temperature: float = 0.6,
+            top_p: float = 0.9,
+            max_gen_len: Optional[int] = None,
+            logprobs: bool = False,
+            echo: bool = False,
     ) -> List[CompletionPrediction]:
         if max_gen_len is None:
             max_gen_len = self.model.params.max_seq_len - 1
@@ -239,14 +239,14 @@ class Llama:
         return [{"generation": self.tokenizer.decode(t)} for t in generation_tokens]
 
     def text_infilling(
-        self,
-        prefixes: List[str],
-        suffixes: List[str],
-        temperature: float = 0.6,
-        top_p: float = 0.9,
-        max_gen_len: Optional[int] = None,
-        logprobs: bool = False,
-        suffix_first: bool = False,
+            self,
+            prefixes: List[str],
+            suffixes: List[str],
+            temperature: float = 0.6,
+            top_p: float = 0.9,
+            max_gen_len: Optional[int] = None,
+            logprobs: bool = False,
+            suffix_first: bool = False,
     ) -> List[InfillingPrediction]:
         assert self.tokenizer.eot_id is not None
         if max_gen_len is None:
@@ -296,12 +296,12 @@ class Llama:
             ]
 
     def chat_completion(
-        self,
-        dialogs: List[Dialog],
-        temperature: float = 0.6,
-        top_p: float = 0.9,
-        max_gen_len: Optional[int] = None,
-        logprobs: bool = False,
+            self,
+            dialogs: List[Dialog],
+            temperature: float = 0.6,
+            top_p: float = 0.9,
+            max_gen_len: Optional[int] = None,
+            logprobs: bool = False,
     ) -> List[ChatPrediction]:
         if self.tokenizer.step_id is not None:
             return self._chat_completion_turns(
@@ -322,14 +322,14 @@ class Llama:
             )
             if dialog[0]["role"] == "system":
                 dialog = [  # type: ignore
-                    {
-                        "role": dialog[1]["role"],
-                        "content": B_SYS
-                        + dialog[0]["content"]
-                        + E_SYS
-                        + dialog[1]["content"],
-                    }
-                ] + dialog[2:]
+                             {
+                                 "role": dialog[1]["role"],
+                                 "content": B_SYS
+                                            + dialog[0]["content"]
+                                            + E_SYS
+                                            + dialog[1]["content"],
+                             }
+                         ] + dialog[2:]
             assert all([msg["role"] == "user" for msg in dialog[::2]]) and all(
                 [msg["role"] == "assistant" for msg in dialog[1::2]]
             ), (
@@ -344,14 +344,14 @@ class Llama:
                         eos=True,
                     )
                     for prompt, answer in zip(
-                        dialog[::2],
-                        dialog[1::2],
-                    )
+                    dialog[::2],
+                    dialog[1::2],
+                )
                 ],
                 [],
             )
             assert (
-                dialog[-1]["role"] == "user"
+                    dialog[-1]["role"] == "user"
             ), f"Last message must be from user, got {dialog[-1]['role']}"
             dialog_tokens += self.tokenizer.encode(
                 f"{B_INST} {dialog[-1]['content'].strip()} {E_INST}",
@@ -367,6 +367,7 @@ class Llama:
             top_p=top_p,
             logprobs=logprobs,
         )
+
         if logprobs:
             assert generation_logprobs is not None
             return [
@@ -384,23 +385,27 @@ class Llama:
                     generation_tokens, generation_logprobs, unsafe_requests
                 )
             ]
-        return [
-            {
-                "generation": {  # type: ignore
-                    "role": "assistant",
-                    "content": self.tokenizer.decode(t) if not unsafe else UNSAFE_ERROR,
+        return (
+            [
+                {
+                    "generation": {  # type: ignore
+                        "role": "assistant",
+                        "content": self.tokenizer.decode(t) if not unsafe else UNSAFE_ERROR,
+                    }
                 }
-            }
-            for t, unsafe in zip(generation_tokens, unsafe_requests)
-        ]
+                for t, unsafe in zip(generation_tokens, unsafe_requests)
+            ],
+            [len(t) for t in prompt_tokens],  # Number of tokens in each input prompt
+            [len(t) for t in generation_tokens]  # Number of tokens in each completion
+        )
 
     def _chat_completion_turns(
-        self,
-        dialogs: List[Dialog],
-        temperature: float = 0.6,
-        top_p: float = 0.9,
-        max_gen_len: Optional[int] = None,
-        logprobs: bool = False,
+            self,
+            dialogs: List[Dialog],
+            temperature: float = 0.6,
+            top_p: float = 0.9,
+            max_gen_len: Optional[int] = None,
+            logprobs: bool = False,
     ) -> List[ChatPrediction]:
         if self.tokenizer.step_id is None:
             raise RuntimeError("Model not suitable for chat_completion_step()")
@@ -459,7 +464,6 @@ class Llama:
         ]
 
 
-
 def sample_top_p(probs, p):
     probs_sort, probs_idx = torch.sort(probs, dim=-1, descending=True)
     probs_sum = torch.cumsum(probs_sort, dim=-1)
@@ -472,10 +476,10 @@ def sample_top_p(probs, p):
 
 
 def infilling_prompt_tokens(
-    tokenizer: Tokenizer,
-    pre: str,
-    suf: str,
-    suffix_first: bool = False,
+        tokenizer: Tokenizer,
+        pre: str,
+        suf: str,
+        suffix_first: bool = False,
 ) -> List[int]:
     """
     Format and encode an infilling problem.
@@ -487,19 +491,19 @@ def infilling_prompt_tokens(
     if suffix_first:
         # format as "<PRE> <SUF>{suf} <MID> {pre}"
         return (
-            [tokenizer.bos_id, tokenizer.prefix_id, tokenizer.suffix_id]
-            + tokenizer.encode_infilling(suf)
-            + [tokenizer.middle_id]
-            + tokenizer.encode(pre, bos=False, eos=False)
+                [tokenizer.bos_id, tokenizer.prefix_id, tokenizer.suffix_id]
+                + tokenizer.encode_infilling(suf)
+                + [tokenizer.middle_id]
+                + tokenizer.encode(pre, bos=False, eos=False)
         )
     else:
         # format as "<PRE> {pre} <SUF>{suf} <MID>"
         return (
-            [tokenizer.bos_id, tokenizer.prefix_id]
-            + tokenizer.encode(pre, bos=False, eos=False)
-            + [tokenizer.suffix_id]
-            + tokenizer.encode_infilling(suf)
-            + [tokenizer.middle_id]
+                [tokenizer.bos_id, tokenizer.prefix_id]
+                + tokenizer.encode(pre, bos=False, eos=False)
+                + [tokenizer.suffix_id]
+                + tokenizer.encode_infilling(suf)
+                + [tokenizer.middle_id]
         )
 
 
@@ -517,7 +521,7 @@ def dialog_prompt_tokens(tokenizer: Tokenizer, dialog: Dialog) -> List[int]:
         "starting with 'system', then 'user' and alternating (u/a/u/a/u...)"
     )
     assert (
-        dialog[-1]["role"] == "user"
+            dialog[-1]["role"] == "user"
     ), f"Last message must be from user, got {dialog[-1]['role']}"
 
     # Format context
